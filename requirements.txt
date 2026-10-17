@@ -1,0 +1,22 @@
+# Beauty & Wellness Skincare Review Project
+# Pin versions for reproducibility; update after testing on your machine.
+
+pandas>=1.5.0
+numpy>=1.23.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
+scikit-learn>=1.2.0
+scipy>=1.10.0
+nltk>=3.8.0
+pytest>=7.2.0
+
+# Optional: used if Kaggle API download is scripted
+# kaggle>=1.5.0
+
+# Notes:
+# - Python 3.9+ required
+# - Install with: pip install -r requirements.txt
+# - Recommended: use a virtual environment
+#   python -m venv venv
+#   venv\Scripts\activate   (Windows)
+#   pip install -r requirements.txt

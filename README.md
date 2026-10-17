@@ -1,0 +1,145 @@
+# Analyzing Customer Reviews for Personalized Skincare Recommendations
+
+**Beauty & Wellness Data Science Internship — Weeks 1–6**  
+**Author:** Rohit
+
+---
+
+## Project Objective
+
+To determine whether product review text, star ratings, and user skin-profile information can support more useful skincare product recommendations than overall average star ratings alone.
+
+**Research Questions (from Week 1):**
+- RQ1: Can specific skin types and concerns be extracted from unstructured customer review text?
+- RQ2: Is there a noticeable difference in how different skin profiles rate the same product?
+
+**Hypothesis:** Average star ratings are misleading. Grouping reviews by skin type provides a more accurate recommendation signal.
+
+---
+
+## Data Source and License Notes
+
+**Primary dataset:** Sephora Products and Skincare Reviews  
+**Source:** Kaggle — https://www.kaggle.com/datasets/nadyinky/sephora-products-and-skincare-reviews  
+**License:** Confirm exact license on download page before use. Likely non-commercial only.  
+**Status:** NOT YET DOWNLOADED — intern must download before running any code.
+
+> ⚠️ Do NOT commit raw data files to this repository unless the license explicitly permits redistribution.  
+> ⚠️ Do NOT commit any credentials, API keys, or personal information.
+
+---
+
+## Folder Structure
+
+```
+/
+├── Week_1_Report_Rohit.docx          # Week 1 submission (preserved)
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── data_dictionary.md
+├── checklist.md
+├── data/
+│   ├── raw/                          # Downloaded data (do not commit if license restricts)
+│   └── processed/                    # Cleaned output from clean.py
+├── reports/
+│   ├── Week_2_Report.docx
+│   ├── Week_3_Report.docx            # To be created
+│   ├── Week_4_Report.docx            # To be created
+│   ├── Week_5_Report.docx            # To be created
+│   └── Week_6_Report.docx            # To be created
+├── src/
+│   ├── clean.py                      # Week 3: cleaning script
+│   ├── eda.py                        # Week 4: EDA and feature engineering
+│   └── model.py                      # Week 5: modelling script
+├── figures/                          # Charts saved by eda.py
+└── tests/
+    └── test_clean.py                 # Tests for cleaning rules
+```
+
+---
+
+## Environment Setup
+
+1. Ensure Python 3.9+ is installed: `python --version`
+2. (Recommended) Create a virtual environment:
+   ```
+   python -m venv venv
+   venv\Scripts\activate        # Windows
+   source venv/bin/activate     # Mac/Linux
+   ```
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+---
+
+## Commands to Run
+
+> All commands assume you are in the repository root and the virtual environment is active.
+
+**Download data (manual step):**
+1. Log in to Kaggle and download the Sephora dataset.
+2. Place the CSV file(s) in `data/raw/`.
+3. Record the license text and download date in `data_dictionary.md`.
+
+**Run cleaning script (Week 3):**
+```
+python src/clean.py
+```
+Output: `data/processed/reviews_clean.csv` + row-count log printed to console.
+
+**Run EDA and feature engineering (Week 4):**
+```
+python src/eda.py
+```
+Output: charts saved to `figures/`, feature summary printed to console.
+
+**Run modelling (Week 5):**
+```
+python src/model.py
+```
+Output: model metrics printed to console, confusion matrix saved to `figures/`.
+
+**Run tests:**
+```
+python -m pytest tests/ -v
+```
+
+---
+
+## Expected Outputs
+
+| Script | Output files |
+|--------|-------------|
+| `clean.py` | `data/processed/reviews_clean.csv` |
+| `eda.py` | `figures/rating_distribution.png`, `figures/skin_type_distribution.png`, `figures/rating_by_skin_type.png`, `figures/review_length_hist.png`, `figures/missingness_heatmap.png`, `figures/top_products.png` |
+| `model.py` | `figures/confusion_matrix.png`, metrics printed to console |
+
+---
+
+## Known Limitations
+
+- Dataset is a static 2023 snapshot from Sephora; findings may not generalise to other platforms.
+- `skin_type` is self-reported by reviewers and may contain errors or missing values.
+- Reviews are self-selected; rating distributions do not represent all purchasers.
+- No skin_type data → skin-type comparisons will be skipped for rows with missing values.
+- Results do not constitute medical or dermatological advice.
+
+---
+
+## Reproducibility Statement
+
+All scripts use fixed random seeds where applicable. The cleaning, EDA, and modelling pipelines are fully scripted and can be re-run from scratch on the downloaded raw data. No results are hard-coded; all metrics are produced by executed code.
+
+---
+
+## Progress
+
+- [x] Week 1: Problem definition (submitted, 44/100)
+- [x] Week 2: Data sourcing report (`reports/Week_2_Report.docx`)
+- [ ] Week 3: Cleaning script and report
+- [ ] Week 4: EDA script, figures, and report
+- [ ] Week 5: Modelling script and report
+- [ ] Week 6: Evaluation and business impact report
