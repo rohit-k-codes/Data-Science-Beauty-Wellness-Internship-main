@@ -103,7 +103,23 @@ python src/clean.py --sample 1000 --output data/processed/reviews_clean_sample.c
 ```
 python src/eda.py
 ```
-Output: charts saved to `figures/`, feature summary printed to console.
+By default, EDA reads the actual Week 3 sample at
+`data/processed/reviews_clean_sample.csv`. It writes supported charts to
+`figures/`, descriptive feature data to
+`data/processed/reviews_eda_features.csv`, and measured results to
+`data/processed/eda_summary.json`, plus `reports/Week_4_Report.docx` with the
+generated charts embedded. Existing outputs are not replaced unless
+`--overwrite` is supplied.
+
+To analyze a different cleaned dataset:
+```
+python src/eda.py --input data/processed/reviews_clean.csv --overwrite
+```
+
+**Week 4 tests:**
+```
+python -m pytest tests/test_eda.py -v
+```
 
 **Run modelling (Week 5):**
 ```
@@ -123,7 +139,7 @@ python -m pytest tests/ -v
 | Script | Output files |
 |--------|-------------|
 | `clean.py` | `data/processed/reviews_clean.csv`, `data/processed/audit_report.csv` |
-| `eda.py` | `figures/rating_distribution.png`, `figures/skin_type_distribution.png`, `figures/rating_by_skin_type.png`, `figures/review_length_hist.png`, `figures/missingness_heatmap.png`, `figures/top_products.png` |
+| `eda.py` | `figures/rating_distribution.png`, `figures/missing_values.png`, `figures/review_length_distribution.png`, `figures/skin_type_distribution.png`, `figures/ratings_by_skin_type.png`, `figures/most_reviewed_products.png`, `data/processed/reviews_eda_features.csv`, `data/processed/eda_summary.json`, `reports/Week_4_Report.docx` |
 | `model.py` | `figures/confusion_matrix.png`, metrics printed to console |
 
 ---
@@ -149,6 +165,6 @@ All scripts use fixed random seeds where applicable. The cleaning, EDA, and mode
 - [x] Week 1: Problem definition (submitted, 44/100)
 - [x] Week 2: Data sourcing report (`reports/Week_2_Report.docx`)
 - [x] Week 3: Cleaning script, tests, sample outputs, and report (full corpus run remains)
-- [ ] Week 4: EDA script, figures, and report
+- [x] Week 4: EDA script, figures, summary, and report (sample results; full corpus remains)
 - [ ] Week 5: Modelling script and report
 - [ ] Week 6: Evaluation and business impact report

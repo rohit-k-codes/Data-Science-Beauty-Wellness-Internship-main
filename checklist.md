@@ -52,13 +52,17 @@
 
 ---
 
-## Week 4 Checklist (to be completed)
+## Week 4 Checklist
 
-- [ ] reports/Week_4_Report.docx created
-- [ ] src/eda.py script created and runs without errors
-- [ ] All charts saved to figures/ with descriptive filenames
-- [ ] Findings clearly distinguished from planned analyses
-- [ ] Skin-type comparisons only made if adequate sample sizes exist
+- [x] reports/Week_4_Report.docx created with actual sample results and embedded charts
+- [x] src/eda.py script created and runs without errors on the Week 3 actual-data sample
+- [x] Supported charts saved to figures/ with descriptive filenames
+- [x] Machine-readable results saved to data/processed/eda_summary.json
+- [x] Derived features saved separately; Week 3 cleaned data is unchanged
+- [x] tests/test_eda.py feature tests pass
+- [x] Findings clearly labelled as sample-only descriptive analysis
+- [x] Skin-type comparison reports known-profile counts and limitations; no suitability claims
+- [ ] INTERN ACTION: Run Week 3 cleaning on the complete corpus, then run python src/eda.py --input data/processed/reviews_clean.csv --overwrite
 
 ---
 
