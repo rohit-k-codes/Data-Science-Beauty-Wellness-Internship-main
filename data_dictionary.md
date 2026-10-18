@@ -6,15 +6,16 @@
 
 ---
 
-## Download Record (to be filled in by intern)
+## Download Record
 
 | Field | Value |
 |-------|-------|
-| Download date | [FILL IN] |
-| Exact license text from Kaggle page | [FILL IN] |
-| File names downloaded | [FILL IN] |
-| Total rows in raw file | [FILL IN] |
-| Total columns in raw file | [FILL IN] |
+| Download date | Not recorded; confirm from download history |
+| Exact license text from Kaggle page | Not verified; confirm on the dataset page before submission or redistribution |
+| Review files present | Five numbered review CSV chunks: `reviews_0-250.csv`, `reviews_250-500.csv`, `reviews_500-750.csv`, `reviews_750-1250.csv`, `reviews_1250-end.csv` |
+| Raw review rows | 1,094,411 across the five review chunks (cleaning audit) |
+| Review columns | 19 source columns (cleaning audit) |
+| Product metadata | `product_info.csv`; joined by `product_id` during cleaning |
 
 ---
 
@@ -23,9 +24,9 @@
 | Field Name | Data Type | Values / Units | Required (R) or Optional (O) | Purpose in Analysis |
 |------------|-----------|----------------|-------------------------------|---------------------|
 | review_text | String | Free text, English | R | NLP input: keyword extraction and sentiment (RQ1) |
-| rating | Integer | 1, 2, 3, 4, or 5 | R | Primary target variable; baseline recommendation signal (RQ2) |
-| skin_type | Categorical string | dry, oily, combination, normal, sensitive (self-reported; may be blank) | R | Grouping variable for skin-type rating analysis (RQ2) |
-| product_id | String | Alphanumeric identifier | R | Join key to product metadata; group-split identifier |
+| rating | Integer | 1, 2, 3, 4, or 5 | R | Ordinal review outcome used for EDA/RQ2; excluded from Week 5 predictors because it is strongly associated with `is_recommended` |
+| skin_type | Categorical string | dry, oily, combination, normal, sensitive, or unknown (self-reported) | R | Grouping field for descriptive/product-level rating analysis; Week 5 profile predictor |
+| product_id | String | Alphanumeric identifier | R | Join key to product metadata and grouping key for future product-level analysis |
 | product_name | String | Free text | R | Human-readable product label |
 | brand_name | String | Free text | O | Brand-level grouping |
 | primary_category | Categorical string | e.g. Skincare, Makeup, Fragrance | R | Filter to skincare subset; modelling feature |
@@ -79,3 +80,19 @@ valid target labels (683,626 positive and 128,348 negative) and 157,911 missing
 target values. Week 5 results are an exploratory prediction of the recorded
 label, not evidence of efficacy, safety, skin concerns, or individual product
 suitability.
+
+The model run uses a fixed-seed, class-proportional 30,000-row sample of the
+full cleaned file, an 80/20 reviewer-grouped holdout, and three-fold
+reviewer-grouped cross-validation. Logistic Regression achieved held-out
+macro-F1 0.851 and ROC-AUC 0.962; the majority baseline macro-F1 was 0.456.
+These sample-based metrics do not validate personalized recommendations.
+Fitted estimators are not serialized; `src/model.py` retrains them on each run.
+
+## Week 4 and Final Verification Notes
+
+The existing Week 4 EDA summary is based on 999 rows read from the beginning
+of the cleaned sample file. It contains two product IDs, with 998 observations
+for one product, so its skin-type rating averages cannot establish
+cross-product suitability or population-level differences. Full-corpus EDA
+was not generated in final verification. The exact dataset license and
+download date remain to be confirmed from the download source.

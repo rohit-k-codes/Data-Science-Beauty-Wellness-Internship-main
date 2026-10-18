@@ -5,94 +5,53 @@
 
 ---
 
-## Before Submitting Each Week
+## Week 2
 
-- [ ] Report .docx file opens without errors in Microsoft Word
-- [ ] All referenced figures exist at the stated path
-- [ ] No placeholder text (e.g. "TODO", "INSERT HERE", "TBD") remains in any report
-- [ ] No fabricated metrics or numbers have been added
-- [ ] All scripts run without errors (python src/clean.py, python src/eda.py, python src/model.py)
-- [ ] Tests pass: python -m pytest tests/ -v
-- [ ] README.md is up to date with current folder structure and commands
-- [ ] No credentials, API keys, or personal data are in any committed file
+- [x] Week 2 sourcing report, comparison, planned analysis, ethics, limitations, and references are present.
+- [x] Sephora review CSV files are present and were read by the cleaning pipeline.
+- [ ] **BLOCKED:** Verify the exact dataset license and record the license text and download date in `data_dictionary.md`.
 
----
+## Week 3
 
-## Week 2 Checklist
+- [x] Cleaning pipeline, tests, audit, sample output, full cleaned output, and report are present.
+- [x] Existing full-corpus audit records 1,094,411 raw rows and 969,885 cleaned rows.
+- [x] Final verification ran `python src/clean.py --sample 1000` with separate temporary outputs; it completed with 999 cleaned rows.
+- [x] Raw inputs are unchanged and ignored by Git.
+- [ ] The full cleaner was not rerun in final verification to avoid replacing existing outputs; rerun using distinct output paths if a fresh full rebuild is required.
 
-- [x] reports/Week_2_Report.docx created and validates
-- [x] Five candidate data sources compared in a structured table
-- [x] Dataset selection criteria defined (Must-Have vs Nice-to-Have)
-- [x] Recommended source justified with rationale
-- [x] Source log completed with check dates
-- [x] Data dictionary defined for all expected fields
-- [x] Planned statistics described (clearly labelled as planned, not executed)
-- [x] Proposed charts listed with variables and research questions addressed
-- [x] How data tests Week 1 hypotheses documented
-- [x] Ethics, licensing, and limitations section included
-- [x] References with URLs included
-- [x] INTERN ACTION: Download Sephora dataset from Kaggle
-- [ ] INTERN ACTION: Record exact license text in data_dictionary.md
-- [ ] INTERN ACTION: Record download date in data_dictionary.md
-- [x] INTERN ACTION: Confirm files open correctly (pd.read_csv returns expected columns)
+## Week 4
 
----
+- [x] EDA script, tests, six chart files, sample summary, derived features, and sample report are present.
+- [x] Final verification reran EDA against the 999-row sample and generated all six charts to temporary output paths.
+- [x] Existing summary reports 999 rows, 24 source columns, and six missing-value columns.
+- [ ] Full-corpus EDA and report have not been generated. The current first-rows sample has 998 of 999 rows from a single product, so its profile comparisons are not representative product-level evidence.
 
-## Week 3 Checklist
+## Week 5
 
-- [x] reports/Week_3_Report.docx created
-- [x] src/clean.py script created and runs without errors
-- [x] Raw data preserved in data/raw/ (not modified)
-- [x] Cleaned 1,000-row actual-data sample saved to data/processed/reviews_clean_sample.csv
-- [x] Row count logged before and after each cleaning rule (audit_report_sample.csv)
-- [x] Missing skin_type treated as unknown (not imputed)
-- [x] tests/test_clean.py created and all 64 tests pass
-- [x] scripts/make_sample.py generates synthetic sample for testing without real data
-- [ ] INTERN ACTION: Run python src/clean.py on the complete review corpus
+- [x] Modeling pipeline, tests, machine-readable results, evaluation plots, and report are present.
+- [x] Final verification reran the complete modeling experiment; saved and fresh run results match.
+- [x] Majority-class baseline, Logistic Regression, and Decision Tree were compared.
+- [x] Reviewer-grouped holdout and three-fold GroupKFold were used; reviewer overlap across the holdout is zero.
+- [x] Rating and rating-derived fields were excluded from predictors; model preprocessing is fitted inside each pipeline.
+- [ ] Fitted estimators are not serialized; `src/model.py` retrains them on each run.
 
----
+## Week 6
 
-## Week 4 Checklist
+- [x] `reports/Week_6_Report.docx` contains verified results, figures, business implications, limitations, conclusion, and future scope.
+- [x] `reports/Final_Project_Summary.docx` consolidates Weeks 1–6 and includes reproducibility instructions.
+- [x] Model comparison, confusion counts, privacy/fairness considerations, uncertainty, and medical-use limits are documented.
+- [x] No unmeasured sales, conversion, return, trust, or other business-impact claims are made.
+- [x] Full automated suite passed: 76 tests.
 
-- [x] reports/Week_4_Report.docx created with actual sample results and embedded charts
-- [x] src/eda.py script created and runs without errors on the Week 3 actual-data sample
-- [x] Supported charts saved to figures/ with descriptive filenames
-- [x] Machine-readable results saved to data/processed/eda_summary.json
-- [x] Derived features saved separately; Week 3 cleaned data is unchanged
-- [x] tests/test_eda.py feature tests pass
-- [x] Findings clearly labelled as sample-only descriptive analysis
-- [x] Skin-type comparison reports known-profile counts and limitations; no suitability claims
-- [ ] INTERN ACTION: Run Week 3 cleaning on the complete corpus, then run python src/eda.py --input data/processed/reviews_clean.csv --overwrite
+## Final Submission Checklist
 
----
-
-## Week 5 Checklist (to be completed)
-
-- [ ] reports/Week_5_Report.docx created
-- [ ] src/model.py script created and runs without errors
-- [ ] Baseline established before any model is trained
-- [ ] At least two models compared
-- [ ] Leakage-aware train/validation/test split used
-- [ ] All metrics reported from executed experiments only
-- [ ] Random seeds fixed
-
----
-
-## Week 6 Checklist (to be completed)
-
-- [ ] reports/Week_6_Report.docx created
-- [ ] Results table populated only from executed experiments
-- [ ] Privacy and fairness considerations addressed
-- [ ] Limitations stated proportional to actual evidence
-- [ ] Disclaimer that results do not constitute medical advice
-
----
-
-## Final Verification Checklist (intern to complete before submission)
-
-- [ ] Confirm dataset license is acceptable for academic use
-- [ ] Confirm all model metrics shown in reports match what the scripts actually output
-- [ ] Confirm all figures referenced in reports exist in the figures/ directory
-- [ ] Confirm the GitHub repository URL is correct
-- [ ] Confirm no raw data files are committed to a public repository (if license restricts)
-- [ ] Read the executive summary of each report and check it accurately describes the work
+- [x] Week 1–5 reports and the expected scripts/tests are present.
+- [x] Relevant charts exist; DOCX files opened and embedded images/text were checked with `python-docx`.
+- [x] Week 5 report metrics match the latest successful modeling run.
+- [x] `data/raw/` and `data/processed/` are ignored by Git; no data files are tracked.
+- [x] Common credential patterns were not found in tracked text files.
+- [ ] **BLOCKED:** Confirm licensing and record the exact license text and download date before submission or redistribution.
+- [ ] Open both new DOCX files in Microsoft Word and inspect page layout; Word GUI rendering was not available during verification.
+- [ ] If the evaluator expects a supported RQ2 conclusion, run full-corpus EDA in separate paths and conduct adequately powered per-product profile comparisons with appropriate statistical testing.
+- [ ] Confirm the repository URL and any additional internship submission requirements with the evaluator.
+- [ ] Keep raw/processed data out of public commits unless the dataset license explicitly permits redistribution.
