@@ -23,7 +23,7 @@ To determine whether product review text, star ratings, and user skin-profile in
 **Source:** Kaggle — https://www.kaggle.com/datasets/nadyinky/sephora-products-and-skincare-reviews  
 **License:** Not yet verified; check the Kaggle download page before redistribution or publication.
 
-**Status:** CSV files are present in `data/raw/`. The full review corpus has not yet been processed.
+**Status:** CSV files are present in `data/raw/`. The full review corpus has been cleaned to `data/processed/reviews_clean.csv`; Week 4 EDA outputs are based on the documented 999-row sample.
 
 > ⚠️ Do NOT commit raw data files to this repository unless the license explicitly permits redistribution.  
 > ⚠️ Do NOT commit any credentials, API keys, or personal information.
@@ -45,9 +45,9 @@ To determine whether product review text, star ratings, and user skin-profile in
 │   └── processed/                    # Cleaned output from clean.py
 ├── reports/
 │   ├── Week_2_Report.docx
-│   ├── Week_3_Report.docx            # To be created
-│   ├── Week_4_Report.docx            # To be created
-│   ├── Week_5_Report.docx            # To be created
+│   ├── Week_3_Report.docx            # Week 3 cleaning report
+│   ├── Week_4_Report.docx            # Week 4 sample EDA report
+│   ├── Week_5_Report.docx            # Week 5 modeling report
 │   └── Week_6_Report.docx            # To be created
 ├── src/
 │   ├── clean.py                      # Week 3: cleaning script
@@ -125,7 +125,17 @@ python -m pytest tests/test_eda.py -v
 ```
 python src/model.py
 ```
-Output: model metrics printed to console, confusion matrix saved to `figures/`.
+The pipeline streams `data/processed/reviews_clean.csv`, takes a reproducible
+30,000-row class-proportional sample, and holds out reviewers as groups. It
+prints actual holdout and reviewer-grouped cross-validation metrics, and writes:
+
+- `data/processed/model_summary.json`
+- `figures/model_confusion_matrices.png`
+- `figures/model_roc_curves.png`
+- `reports/Week_5_Report.docx`
+
+The pipeline refuses to replace existing Week 5 outputs unless `--overwrite` is
+provided.
 
 **Run tests:**
 ```
@@ -140,7 +150,7 @@ python -m pytest tests/ -v
 |--------|-------------|
 | `clean.py` | `data/processed/reviews_clean.csv`, `data/processed/audit_report.csv` |
 | `eda.py` | `figures/rating_distribution.png`, `figures/missing_values.png`, `figures/review_length_distribution.png`, `figures/skin_type_distribution.png`, `figures/ratings_by_skin_type.png`, `figures/most_reviewed_products.png`, `data/processed/reviews_eda_features.csv`, `data/processed/eda_summary.json`, `reports/Week_4_Report.docx` |
-| `model.py` | `figures/confusion_matrix.png`, metrics printed to console |
+| `model.py` | `data/processed/model_summary.json`, `figures/model_confusion_matrices.png`, `figures/model_roc_curves.png`, `reports/Week_5_Report.docx`, metrics printed to console |
 
 ---
 
@@ -164,7 +174,7 @@ All scripts use fixed random seeds where applicable. The cleaning, EDA, and mode
 
 - [x] Week 1: Problem definition (submitted, 44/100)
 - [x] Week 2: Data sourcing report (`reports/Week_2_Report.docx`)
-- [x] Week 3: Cleaning script, tests, sample outputs, and report (full corpus run remains)
+- [x] Week 3: Cleaning script, tests, sample outputs, full-corpus output, and report
 - [x] Week 4: EDA script, figures, summary, and report (sample results; full corpus remains)
-- [ ] Week 5: Modelling script and report
+- [x] Week 5: Modelling script, tests, actual evaluation, figures, and report
 - [ ] Week 6: Evaluation and business impact report
