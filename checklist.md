@@ -31,11 +31,10 @@
 - [x] How data tests Week 1 hypotheses documented
 - [x] Ethics, licensing, and limitations section included
 - [x] References with URLs included
-- [ ] INTERN ACTION: Download Sephora dataset from Kaggle
+- [x] INTERN ACTION: Download Sephora dataset from Kaggle
 - [ ] INTERN ACTION: Record exact license text in data_dictionary.md
 - [ ] INTERN ACTION: Record download date in data_dictionary.md
-- [ ] INTERN ACTION: Confirm files open correctly (pd.read_csv returns expected columns)
-- [ ] INTERN ACTION: Report back to proceed to Week 3
+- [x] INTERN ACTION: Confirm files open correctly (pd.read_csv returns expected columns)
 
 ---
 
@@ -44,12 +43,12 @@
 - [x] reports/Week_3_Report.docx created
 - [x] src/clean.py script created and runs without errors
 - [x] Raw data preserved in data/raw/ (not modified)
-- [x] Cleaned data saved to data/processed/reviews_clean.csv
-- [x] Row count logged before and after each cleaning rule (audit_report.csv)
+- [x] Cleaned 1,000-row actual-data sample saved to data/processed/reviews_clean_sample.csv
+- [x] Row count logged before and after each cleaning rule (audit_report_sample.csv)
 - [x] Missing skin_type treated as unknown (not imputed)
-- [x] tests/test_clean.py created and all 57 tests pass
+- [x] tests/test_clean.py created and all 64 tests pass
 - [x] scripts/make_sample.py generates synthetic sample for testing without real data
-- [ ] INTERN ACTION: Download real Sephora dataset and run python src/clean.py
+- [ ] INTERN ACTION: Run python src/clean.py on the complete review corpus
 
 ---
 

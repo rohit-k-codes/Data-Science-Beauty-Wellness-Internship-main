@@ -21,8 +21,9 @@ To determine whether product review text, star ratings, and user skin-profile in
 
 **Primary dataset:** Sephora Products and Skincare Reviews  
 **Source:** Kaggle — https://www.kaggle.com/datasets/nadyinky/sephora-products-and-skincare-reviews  
-**License:** Confirm exact license on download page before use. Likely non-commercial only.  
-**Status:** NOT YET DOWNLOADED — intern must download before running any code.
+**License:** Not yet verified; check the Kaggle download page before redistribution or publication.
+
+**Status:** CSV files are present in `data/raw/`. The full review corpus has not yet been processed.
 
 > ⚠️ Do NOT commit raw data files to this repository unless the license explicitly permits redistribution.  
 > ⚠️ Do NOT commit any credentials, API keys, or personal information.
@@ -88,7 +89,15 @@ To determine whether product review text, star ratings, and user skin-profile in
 ```
 python src/clean.py
 ```
-Output: `data/processed/reviews_clean.csv` + row-count log printed to console.
+Output: `data/processed/reviews_clean.csv` and `data/processed/audit_report.csv`.
+The default run reads the numbered review CSV chunks and joins `primary_category`
+from `product_info.csv` when it is not in the review files.
+
+To run a bounded sample without replacing the existing processed files:
+```
+python src/clean.py --sample 1000 --output data/processed/reviews_clean_sample.csv --audit-output data/processed/audit_report_sample.csv
+```
+`--sample` reads the first N rows in file order; it does not load the full CSV first.
 
 **Run EDA and feature engineering (Week 4):**
 ```
@@ -113,7 +122,7 @@ python -m pytest tests/ -v
 
 | Script | Output files |
 |--------|-------------|
-| `clean.py` | `data/processed/reviews_clean.csv` |
+| `clean.py` | `data/processed/reviews_clean.csv`, `data/processed/audit_report.csv` |
 | `eda.py` | `figures/rating_distribution.png`, `figures/skin_type_distribution.png`, `figures/rating_by_skin_type.png`, `figures/review_length_hist.png`, `figures/missingness_heatmap.png`, `figures/top_products.png` |
 | `model.py` | `figures/confusion_matrix.png`, metrics printed to console |
 
@@ -139,7 +148,7 @@ All scripts use fixed random seeds where applicable. The cleaning, EDA, and mode
 
 - [x] Week 1: Problem definition (submitted, 44/100)
 - [x] Week 2: Data sourcing report (`reports/Week_2_Report.docx`)
-- [ ] Week 3: Cleaning script and report
+- [x] Week 3: Cleaning script, tests, sample outputs, and report (full corpus run remains)
 - [ ] Week 4: EDA script, figures, and report
 - [ ] Week 5: Modelling script and report
 - [ ] Week 6: Evaluation and business impact report

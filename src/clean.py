@@ -13,8 +13,8 @@ Design principles
   boundaries so that downstream NLP does not lose polarity signals.
 * Rating validation rejects values outside {1, 2, 3, 4, 5}; non-integer
   numeric ratings are rounded to the nearest valid integer and flagged.
-* Duplicate detection produces a diagnostics report without silently dropping
-  rows; the caller decides which duplicates to remove.
+* Duplicate detection removes repeated author/text keys and records each
+  before/after count in the audit report.
 * Unknown profile values (skin_tone, eye_color, hair_color) are kept as-is;
   they are not normalised to "unknown" unless they are blank/null.
 * Skin type is mapped from raw string to a canonical set via an explicit
@@ -24,10 +24,13 @@ Design principles
 
 Usage
 -----
-    python src/clean.py [--input PATH] [--output PATH] [--sample N]
+    python src/clean.py [--input PATH] [--output PATH] [--audit-output PATH]
+                        [--sample N]
 
-The --sample flag limits the pipeline to N random rows from the raw data
-(useful for fast inspection without loading the full dataset).
+Without --input, the pipeline reads the numbered review CSV chunks in
+data/raw/ and uses product_info.csv to add product categories when available.
+The --sample flag reads only the first N rows across those files, so it can be
+used without loading the full dataset.
 """
 
 import argparse
@@ -37,7 +40,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -220,6 +223,9 @@ def handle_missing(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     before = len(df)
     lines = []
 
+    if "skin_type_raw" not in df.columns:
+        df["skin_type_raw"] = df["skin_type"].copy()
+
     # Drop rows with null review_text.
     blank_mask = df["review_text"].isna() | (
         df["review_text"].astype(str).str.strip() == ""
@@ -244,7 +250,7 @@ def handle_missing(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
 
     # Document remaining nulls in optional columns.
     other_null_summary = (
-        df.drop(columns=["review_text", "rating", "skin_type"])
+        df.drop(columns=["review_text", "rating", "skin_type", "skin_type_raw"])
         .isna()
         .sum()
     )
@@ -320,7 +326,7 @@ def validate_ratings(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
 
     # Coerce to numeric; errors -> NaN.
     numeric = pd.to_numeric(df["rating"], errors="coerce")
-    non_numeric_mask = numeric.isna()
+    non_numeric_mask = numeric.isna() | ~np.isfinite(numeric)
     n_non_numeric = int(non_numeric_mask.sum())
     df = df[~non_numeric_mask].copy()
     numeric = numeric[~non_numeric_mask]
@@ -398,7 +404,8 @@ def map_skin_type(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     The original raw value is preserved in skin_type_raw for audit purposes.
     """
     df = df.copy()
-    df["skin_type_raw"] = df["skin_type"].astype(str)
+    if "skin_type_raw" not in df.columns:
+        df["skin_type_raw"] = df["skin_type"].copy()
 
     normalised = df["skin_type"].astype(str).str.strip().str.lower()
     mapped = normalised.map(SKIN_TYPE_MAP)
@@ -503,6 +510,21 @@ def clean_review_text(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     return df, msg
 
 
+def validate_clean_text(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+    """Drop rows whose review text becomes empty after conservative cleaning."""
+    before = len(df)
+    blank_mask = (
+        df["review_text_clean"].isna()
+        | df["review_text_clean"].astype(str).str.strip().eq("")
+    )
+    df = df[~blank_mask].copy()
+    removed = before - len(df)
+    return df, (
+        f"[text_quality] {before} -> {len(df)} rows; "
+        f"empty after cleaning dropped: {removed}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # 8. Audit report
 # ---------------------------------------------------------------------------
@@ -520,56 +542,110 @@ def write_audit_report(audit_rows: list[dict], path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _find_raw_csv(raw_dir: Path) -> Path:
-    """Return the first CSV file found in raw_dir.
-
-    Priority order: files containing 'review' in the name first.
-    Raises FileNotFoundError if no CSV is found.
-    """
-    csvs = sorted(raw_dir.glob("*.csv"))
+def _find_raw_csvs(raw_dir: Path) -> list[Path]:
+    """Return numbered review chunks, excluding the synthetic test sample."""
+    csvs = [
+        path for path in raw_dir.glob("reviews_*.csv")
+        if path.name.lower() != "reviews_sample.csv"
+    ]
     if not csvs:
         raise FileNotFoundError(
-            f"No CSV files found in {raw_dir}. "
+            f"No numbered review CSV files found in {raw_dir}. "
             "Please download the Sephora dataset from Kaggle and place it in data/raw/."
         )
-    # Prefer files with 'review' in the name.
-    review_csvs = [p for p in csvs if "review" in p.name.lower()]
-    return review_csvs[0] if review_csvs else csvs[0]
+
+    def _chunk_start(path: Path) -> int:
+        match = re.match(r"reviews_(\d+)-", path.name.lower())
+        return int(match.group(1)) if match else sys.maxsize
+
+    return sorted(csvs, key=_chunk_start)
 
 
-def load_raw(raw_path: Path, sample: Optional[int] = None) -> pd.DataFrame:
-    """Load raw CSV with low_memory=False to avoid dtype inference warnings.
+def load_raw(
+    raw_paths: Union[Path, Sequence[Path]],
+    sample: Optional[int] = None,
+) -> pd.DataFrame:
+    """Load review CSV(s); with sample, read only the first N rows in file order.
 
-    If sample is set, a random sample of that size is returned.
+    Reading with nrows keeps a sample run bounded even when source CSVs are
+    very large. Full runs concatenate all supplied files.
     """
-    log.info("Loading raw data from %s …", raw_path)
-    df = pd.read_csv(raw_path, low_memory=False)
-    raw_rows, raw_cols = df.shape
-    log.info("Raw data loaded: %d rows × %d columns", raw_rows, raw_cols)
-    if sample and sample < raw_rows:
-        df = df.sample(n=sample, random_state=42).reset_index(drop=True)
-        log.info("Sample of %d rows selected (random_state=42)", sample)
+    paths = [raw_paths] if isinstance(raw_paths, Path) else list(raw_paths)
+    if not paths:
+        raise ValueError("At least one raw review CSV path is required.")
+    if sample is not None and sample <= 0:
+        raise ValueError("--sample must be a positive integer.")
+
+    frames = []
+    remaining = sample
+    for raw_path in paths:
+        log.info("Loading raw data from %s …", raw_path)
+        read_options: dict[str, int] = {}
+        if remaining is not None:
+            read_options["nrows"] = remaining
+        frame = pd.read_csv(raw_path, low_memory=False, **read_options)
+        frames.append(frame)
+        if remaining is not None:
+            remaining -= len(frame)
+            if remaining <= 0:
+                break
+
+    df = pd.concat(frames, ignore_index=True)
+    log.info("Raw data loaded: %d rows × %d columns", len(df), len(df.columns))
     return df
+
+
+def attach_product_categories(
+    df: pd.DataFrame,
+    product_info_path: Path,
+) -> tuple[pd.DataFrame, str]:
+    """Attach primary_category from product metadata when reviews lack it."""
+    if "primary_category" in df.columns:
+        return df, "[product_categories] primary_category already present"
+    if not product_info_path.exists():
+        return df, (
+            "[product_categories] product_info.csv not found; "
+            "category filtering cannot be applied"
+        )
+
+    products = pd.read_csv(
+        product_info_path,
+        usecols=["product_id", "primary_category"],
+        low_memory=False,
+    )
+    if products["product_id"].duplicated().any():
+        raise ValueError(
+            f"Duplicate product_id values in product metadata: {product_info_path}"
+        )
+    before = len(df)
+    df = df.merge(products, on="product_id", how="left", validate="many_to_one")
+    unmatched = int(df["primary_category"].isna().sum())
+    return df, (
+        f"[product_categories] category lookup joined; {before} review rows "
+        f"preserved; unmatched product_id values: {unmatched}"
+    )
 
 
 def run_pipeline(
     input_path: Optional[Path] = None,
     output_path: Path = DEFAULT_OUTPUT,
     sample: Optional[int] = None,
+    audit_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     """Execute the full cleaning pipeline and return the cleaned DataFrame.
 
     Parameters
     ----------
-    input_path : path to raw CSV; auto-detected from data/raw/ if None.
+    input_path : optional path to one raw review CSV. If omitted, all
+        numbered review chunks in data/raw/ are processed in file order.
     output_path : destination for reviews_clean.csv.
-    sample : if set, only process this many rows (for inspection).
+    sample : if set, read only this many first rows across the input files.
+    audit_path : optional destination for the data-quality audit CSV.
     """
     # ------------------------------------------------------------------ setup
-    if input_path is None:
-        input_path = _find_raw_csv(RAW_DIR)
+    input_paths = [input_path] if input_path is not None else _find_raw_csvs(RAW_DIR)
 
-    df = load_raw(input_path, sample=sample)
+    df = load_raw(input_paths, sample=sample)
     raw_row_count = len(df)
 
     audit_rows: list[dict] = []
@@ -590,7 +666,11 @@ def run_pipeline(
 
     # ------------------------------------------------ Step 0: raw snapshot
     step_number = 0
-    _record("raw_load", raw_row_count, raw_row_count, f"source: {input_path.name}")
+    input_names = ", ".join(path.name for path in input_paths)
+    if sample is not None:
+        input_names += f"; first {raw_row_count} source rows (sample)"
+    source_description = input_names
+    _record("raw_load", raw_row_count, raw_row_count, f"source: {input_names}")
     log.info("Step 0 — raw load: %d rows", raw_row_count)
 
     # ------------------------------------------- Step 1: schema normalisation
@@ -600,66 +680,85 @@ def run_pipeline(
     _record("schema_normalise", rows_before, len(df), msg)
     log.info("Step 1 — %s", msg)
 
-    # ------------------------------------- Step 2: skincare category filter
+    # ------------------------------------------ product category enrichment
     step_number = 2
+    rows_before = len(df)
+    df, msg = attach_product_categories(df, RAW_DIR / "product_info.csv")
+    _record("product_categories", rows_before, len(df), msg)
+    log.info("Step 2 — %s", msg)
+
+    # ------------------------------------- Step 2: skincare category filter
+    step_number = 3
     rows_before = len(df)
     df, msg = filter_skincare(df)
     _record("skincare_filter", rows_before, len(df), msg)
-    log.info("Step 2 — %s", msg)
+    log.info("Step 3 — %s", msg)
 
     # ---------------------------------------- Step 3: missing-value rules
-    step_number = 3
+    step_number = 4
     rows_before = len(df)
     df, msg = handle_missing(df)
     _record("missing_values", rows_before, len(df), msg)
-    log.info("Step 3 — %s", msg)
+    log.info("Step 4 — %s", msg)
 
     # ------------------------------------ Step 4: duplicate diagnostics
-    step_number = 4
+    step_number = 5
     rows_before = len(df)
     df, msg = diagnose_duplicates(df)
     _record("duplicate_removal", rows_before, len(df), msg)
-    log.info("Step 4 — %s", msg)
+    log.info("Step 5 — %s", msg)
 
     # ------------------------------------------ Step 5: rating validation
-    step_number = 5
+    step_number = 6
     rows_before = len(df)
     df, msg = validate_ratings(df)
     _record("rating_validation", rows_before, len(df), msg)
-    log.info("Step 5 — %s", msg)
+    log.info("Step 6 — %s", msg)
 
     # ----------------------------------------- Step 6: skin-type mapping
-    step_number = 6
+    step_number = 7
     rows_before = len(df)
     df, msg = map_skin_type(df)
     _record("skin_type_map", rows_before, len(df), msg)
-    log.info("Step 6 — %s", msg)
+    log.info("Step 7 — %s", msg)
 
     # -------------------------------------- Step 7: text cleaning
-    step_number = 7
+    step_number = 8
     rows_before = len(df)
     df, msg = clean_review_text(df)
     _record("text_cleaning", rows_before, len(df), msg)
-    log.info("Step 7 — %s", msg)
+    log.info("Step 8 — %s", msg)
+
+    # --------------------------------------- final text-quality validation
+    step_number = 9
+    rows_before = len(df)
+    df, msg = validate_clean_text(df)
+    _record("text_quality", rows_before, len(df), msg)
+    log.info("Step 9 — %s", msg)
 
     # --------------------------------------------------------- write outputs
     df.to_csv(output_path, index=False)
     log.info("Cleaned data written -> %s  (%d rows × %d columns)",
              output_path, len(df), len(df.columns))
 
-    write_audit_report(audit_rows, AUDIT_OUTPUT)
+    selected_audit_path = audit_path or (
+        AUDIT_OUTPUT
+        if output_path == DEFAULT_OUTPUT
+        else output_path.with_name(f"audit_report_{output_path.stem}.csv")
+    )
+    write_audit_report(audit_rows, selected_audit_path)
 
     # -------------------------------------------------- summary to stdout
     print("\n" + "=" * 60)
     print("CLEANING PIPELINE SUMMARY")
     print("=" * 60)
-    print(f"  Source file    : {input_path}")
+    print(f"  Source file(s) : {source_description}")
     print(f"  Raw rows       : {raw_row_count:,}")
     print(f"  Cleaned rows   : {len(df):,}")
     print(f"  Rows removed   : {raw_row_count - len(df):,}  "
           f"({(raw_row_count - len(df)) / max(raw_row_count, 1) * 100:.1f}%)")
     print(f"  Output         : {output_path}")
-    print(f"  Audit report   : {AUDIT_OUTPUT}")
+    print(f"  Audit report   : {selected_audit_path}")
     print("=" * 60)
 
     for row in audit_rows:
@@ -701,7 +800,11 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sample", type=int, default=None,
-        help="Process only N random rows (for inspection/testing)"
+        help="Read only the first N rows across the selected input CSV(s)"
+    )
+    parser.add_argument(
+        "--audit-output", type=Path, default=None,
+        help="Destination path for the data-quality audit CSV"
     )
     return parser.parse_args()
 
@@ -712,4 +815,5 @@ if __name__ == "__main__":
         input_path=args.input,
         output_path=args.output,
         sample=args.sample,
+        audit_path=args.audit_output,
     )

@@ -26,6 +26,10 @@ from clean import (
     map_skin_type,
     clean_text,
     clean_review_text,
+    validate_clean_text,
+    load_raw,
+    attach_product_categories,
+    _find_raw_csvs,
     SKIN_TYPE_SENTINEL,
     CANONICAL_SKIN_TYPES,
 )
@@ -175,6 +179,14 @@ class TestHandleMissing:
         )
         result, _ = handle_missing(df)
         assert result["skin_type"].tolist() == ["unknown", "unknown", "dry"]
+
+    def test_original_skin_type_value_is_preserved(self):
+        df = _minimal_df(skin_type=[None])
+        result, _ = handle_missing(df)
+        result, _ = map_skin_type(result)
+
+        assert result["skin_type"].tolist() == ["unknown"]
+        assert pd.isna(result["skin_type_raw"].iloc[0])
 
     def test_skin_type_unknown_not_dropped(self):
         """Missing skin_type must NOT cause row deletion."""
@@ -338,6 +350,17 @@ class TestValidateRatings:
         result, _ = validate_ratings(df)
         assert result["rating"].dtype == int
 
+    def test_infinite_rating_is_dropped(self):
+        df = pd.DataFrame(
+            {"review_text": ["bad rating", "valid rating"],
+             "rating": [float("inf"), 4],
+             "skin_type": ["dry", "oily"],
+             "product_id": ["P1", "P2"]}
+        )
+        result, msg = validate_ratings(df)
+        assert result["rating"].tolist() == [4]
+        assert "non-numeric dropped: 1" in msg
+
 
 # ===========================================================================
 # 6. Skin-type mapping
@@ -479,6 +502,70 @@ class TestCleanReviewText:
         _, msg = clean_review_text(df)
         # At least 1 row has negation
         assert "negation tokens" in msg
+
+
+class TestTextQuality:
+    def test_drops_text_empty_after_cleaning(self):
+        df = pd.DataFrame(
+            {"review_text": ["one", "two", "three"],
+             "rating": [5, 4, 3],
+             "skin_type": ["dry", "oily", "normal"],
+             "product_id": ["P1", "P2", "P3"],
+             "review_text_clean": ["", "   ", "usable review"]}
+        )
+        result, msg = validate_clean_text(df)
+        assert result["review_text_clean"].tolist() == ["usable review"]
+        assert "empty after cleaning dropped: 2" in msg
+
+
+class TestRawLoading:
+    def test_sample_reads_prefix_across_input_files(self, tmp_path):
+        first = tmp_path / "reviews_0-2.csv"
+        second = tmp_path / "reviews_2-end.csv"
+        first.write_text("review_text,rating\nfirst,5\nsecond,4\n", encoding="utf-8")
+        second.write_text("review_text,rating\nthird,3\n", encoding="utf-8")
+
+        result = load_raw([first, second], sample=3)
+
+        assert result["review_text"].tolist() == ["first", "second", "third"]
+
+    def test_non_positive_sample_is_rejected(self, tmp_path):
+        source = tmp_path / "reviews.csv"
+        source.write_text("review_text,rating\nreview,5\n", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="positive integer"):
+            load_raw(source, sample=0)
+
+    def test_default_sources_are_numbered_review_chunks_only(self, tmp_path):
+        raw_dir = tmp_path / "raw"
+        raw_dir.mkdir()
+        for name in (
+            "reviews_250-500.csv",
+            "reviews_0-250.csv",
+            "reviews_sample.csv",
+            "product_info.csv",
+        ):
+            (raw_dir / name).touch()
+
+        assert [path.name for path in _find_raw_csvs(raw_dir)] == [
+            "reviews_0-250.csv",
+            "reviews_250-500.csv",
+        ]
+
+
+class TestProductCategoryEnrichment:
+    def test_adds_categories_by_product_id(self, tmp_path):
+        products = tmp_path / "product_info.csv"
+        products.write_text(
+            "product_id,primary_category\nP1,Skincare\n",
+            encoding="utf-8",
+        )
+        reviews = pd.DataFrame({"product_id": ["P1"], "review_text": ["text"]})
+
+        result, msg = attach_product_categories(reviews, products)
+
+        assert result["primary_category"].tolist() == ["Skincare"]
+        assert "unmatched product_id values: 0" in msg
 
 
 # ===========================================================================
